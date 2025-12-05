@@ -4,7 +4,7 @@ use std::{collections::HashMap, time::Duration};
 use tonic::{transport::channel::ClientTlsConfig, Status};
 use yellowstone_grpc_client::{GeyserGrpcClient, Interceptor};
 use yellowstone_grpc_proto::geyser::{
-    CommitmentLevel, SubscribeRequest, SubscribeRequestFilterAccounts,
+    CommitmentLevel, SubscribeRequest, SubscribeRequestFilterAccounts,SubscribeRequestFilterBlocks,
     SubscribeRequestFilterBlocksMeta, SubscribeRequestFilterTransactions, SubscribeUpdate,
 };
 
@@ -61,10 +61,31 @@ impl SubscriptionManager {
             } else {
                 hashmap! {}
             };
+        let blocks =
+            if event_type_filter.is_some() && event_type_filter.unwrap().include_block_event() {
+                hashmap! { "".to_owned() => SubscribeRequestFilterBlocks {
+                    account_include: vec![],
+                    include_transactions: Some(true), // 是否包含交易详情
+                    include_accounts: Some(false),
+                    include_entries: Some(false),
+                } }
+            } else if event_type_filter.is_none() {
+                // 默认不订阅完整 Block，因为数据量太大。如果你想默认全订阅，可以改成 hashmap! {...}
+                // 这里我建议依然留空，除非显式要求，或者你可以硬编码开启测试
+                hashmap! { "".to_owned() => SubscribeRequestFilterBlocks {
+                    account_include: vec![],
+                    include_transactions: Some(true),
+                    include_accounts: Some(false),
+                    include_entries: Some(false),
+                } }
+            } else {
+                hashmap! {}
+            };
         let subscribe_request = SubscribeRequest {
             accounts: accounts.unwrap_or_default(),
             transactions: transactions.unwrap_or_default(),
             blocks_meta,
+            blocks,
             commitment: if let Some(commitment) = commitment {
                 Some(commitment as i32)
             } else {

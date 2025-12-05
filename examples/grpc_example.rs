@@ -13,7 +13,7 @@ use solana_streamer_sdk::streaming::{
     yellowstone_grpc::{AccountFilter, TransactionFilter},
     YellowstoneGrpc,
 };
-
+use yellowstone_grpc_proto::geyser::CommitmentLevel;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Starting Yellowstone gRPC Streamer...");
@@ -92,7 +92,7 @@ async fn test_grpc() -> Result<(), Box<dyn std::error::Error>> {
         vec![transaction_filter],
         vec![account_filter],
         event_type_filter,
-        None,
+        Some(CommitmentLevel::Processed),
         callback,
     )
     .await?;
